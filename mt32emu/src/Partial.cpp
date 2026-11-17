@@ -312,20 +312,8 @@ Bit32u Partial::getCutoffValue() {
 	return currentCutoffValue;
 }
 
-bool Partial::hasRingModulatingSlave() const {
-	return pair != NULL && structurePosition == 0 && (mixType == 1 || mixType == 2);
-}
-
-bool Partial::isRingModulatingSlave() const {
-	return pair != NULL && structurePosition == 1 && (mixType == 1 || mixType == 2);
-}
-
 bool Partial::isRingModulatingNoMix() const {
 	return pair != NULL && ((structurePosition == 1 && mixType == 1) || mixType == 2);
-}
-
-bool Partial::isPCM() const {
-	return pcmWave != NULL;
 }
 
 const ControlROMPCMStruct *Partial::getControlROMPCMStruct() const {
@@ -370,12 +358,12 @@ bool Partial::generateNextSample(LA32PairImpl *la32PairImpl) {
 	if (updateAmp()) la32PairImpl->setAmp(LA32PartialPair::MASTER, getAmpValue());
 	if (updatePitch()) la32PairImpl->setPitch(LA32PartialPair::MASTER, currentPitch);
 	if (updateCutoff()) la32PairImpl->setCutoff(LA32PartialPair::MASTER, getCutoffValue());
-	la32PairImpl->generateNextSample(LA32PartialPair::MASTER);
+	la32PairImpl->generateNextActiveSample(LA32PartialPair::MASTER);
 	if (hasRingModulatingSlave()) {
 		if (pair->updateAmp()) la32PairImpl->setAmp(LA32PartialPair::SLAVE, pair->getAmpValue());
 		if (pair->updatePitch()) la32PairImpl->setPitch(LA32PartialPair::SLAVE, pair->currentPitch);
 		if (pair->updateCutoff()) la32PairImpl->setCutoff(LA32PartialPair::SLAVE, pair->getCutoffValue());
-		la32PairImpl->generateNextSample(LA32PartialPair::SLAVE);
+		la32PairImpl->generateNextActiveSample(LA32PartialPair::SLAVE);
 		if (!pair->tva->isPlaying() || !la32PairImpl->isActive(LA32PartialPair::SLAVE)) {
 			pair->deactivate();
 			if (mixType == 2) {

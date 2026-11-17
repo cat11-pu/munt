@@ -120,9 +120,13 @@ public:
 	void startDecayAll();
 	bool shouldReverb();
 	bool isRingModulatingNoMix() const;
-	bool hasRingModulatingSlave() const;
-	bool isRingModulatingSlave() const;
-	bool isPCM() const;
+	bool hasRingModulatingSlave() const {
+		return pair != NULL && structurePosition == 0 && (mixType == 1 || mixType == 2);
+	}
+	bool isRingModulatingSlave() const {
+		return pair != NULL && structurePosition == 1 && (mixType == 1 || mixType == 2);
+	}
+	bool isPCM() const { return pcmWave != NULL; }
 	const ControlROMPCMStruct *getControlROMPCMStruct() const;
 	Synth *getSynth() const;
 	TVA *getTVA() const;

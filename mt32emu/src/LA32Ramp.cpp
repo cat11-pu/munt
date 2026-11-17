@@ -57,7 +57,6 @@ namespace MT32Emu {
 
 // SEMI-CONFIRMED from sample analysis.
 const unsigned int TARGET_SHIFTS = 18;
-const unsigned int MAX_CURRENT = 0xFF << TARGET_SHIFTS;
 
 // We simulate the delay in handling "target was reached" interrupts by waiting
 // this many samples before setting interruptRaised.
@@ -67,8 +66,6 @@ const unsigned int MAX_CURRENT = 0xFF << TARGET_SHIFTS;
 // This one matches observed behaviour on a few digital captures I had handy,
 // and should be double-checked. We may also need a more sophisticated delay
 // scheme eventually.
-const int INTERRUPT_TIME = 7;
-
 static const Bit16u *exp9;
 
 void LA32Ramp::initTables(const Tables &tables) {
@@ -105,48 +102,6 @@ void LA32Ramp::startRamp(Bit8u target, Bit8u increment) {
 	largeTarget = target << TARGET_SHIFTS;
 	interruptCountdown = 0;
 	interruptRaised = false;
-}
-
-Bit32u LA32Ramp::nextValue() {
-	if (interruptCountdown > 0) {
-		if (--interruptCountdown == 0) {
-			interruptRaised = true;
-		}
-	} else if (largeIncrement != 0) {
-		// CONFIRMED from sample analysis: When increment is 0, the LA32 does *not* change the current value at all (and of course doesn't fire an interrupt).
-		if (descending) {
-			// Lowering current value
-			if (largeIncrement > current) {
-				current = largeTarget;
-				interruptCountdown = INTERRUPT_TIME;
-			} else {
-				current -= largeIncrement;
-				if (current <= largeTarget) {
-					current = largeTarget;
-					interruptCountdown = INTERRUPT_TIME;
-				}
-			}
-		} else {
-			// Raising current value
-			if (MAX_CURRENT - current < largeIncrement) {
-				current = largeTarget;
-				interruptCountdown = INTERRUPT_TIME;
-			} else {
-				current += largeIncrement;
-				if (current >= largeTarget) {
-					current = largeTarget;
-					interruptCountdown = INTERRUPT_TIME;
-				}
-			}
-		}
-	}
-	return current;
-}
-
-bool LA32Ramp::checkInterrupt() {
-	bool wasRaised = interruptRaised;
-	interruptRaised = false;
-	return wasRaised;
 }
 
 void LA32Ramp::reset() {

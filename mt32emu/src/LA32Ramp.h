@@ -27,6 +27,9 @@ struct Tables;
 
 class LA32Ramp {
 private:
+	static const unsigned int MAX_CURRENT = 0xFFU << 18;
+	enum { INTERRUPT_TIME = 7 };
+
 	Bit32u current;
 	unsigned int largeTarget;
 	unsigned int largeIncrement;
@@ -45,6 +48,48 @@ public:
 	void reset();
 	bool isBelowCurrent(Bit8u target) const;
 };
+
+inline Bit32u LA32Ramp::nextValue() {
+	if (interruptCountdown > 0) {
+		if (--interruptCountdown == 0) {
+			interruptRaised = true;
+		}
+	} else if (largeIncrement != 0) {
+		// CONFIRMED from sample analysis: When increment is 0, the LA32 does *not* change the current value at all (and of course doesn't fire an interrupt).
+		if (descending) {
+			// Lowering current value
+			if (largeIncrement > current) {
+				current = largeTarget;
+				interruptCountdown = INTERRUPT_TIME;
+			} else {
+				current -= largeIncrement;
+				if (current <= largeTarget) {
+					current = largeTarget;
+					interruptCountdown = INTERRUPT_TIME;
+				}
+			}
+		} else {
+			// Raising current value
+			if (MAX_CURRENT - current < largeIncrement) {
+				current = largeTarget;
+				interruptCountdown = INTERRUPT_TIME;
+			} else {
+				current += largeIncrement;
+				if (current >= largeTarget) {
+					current = largeTarget;
+					interruptCountdown = INTERRUPT_TIME;
+				}
+			}
+		}
+	}
+	return current;
+}
+
+inline bool LA32Ramp::checkInterrupt() {
+	bool wasRaised = interruptRaised;
+	interruptRaised = false;
+	return wasRaised;
+}
 
 } // namespace MT32Emu
 

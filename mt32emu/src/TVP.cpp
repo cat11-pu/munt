@@ -318,21 +318,12 @@ void TVP::startDecay() {
 	targetPitchOffsetReachedBigTick = timeElapsed >> 8; // FIXME: Afaict there's no good reason for this - check
 }
 
-Bit16u TVP::nextPitch() {
-	// We emulate MCU software timer using these counter and processTimerIncrement variables.
-	// The value of NOMINAL_PROCESS_TIMER_PERIOD_SAMPLES approximates the period in samples
-	// between subsequent firings of the timer that normally occur.
-	// However, accurate emulation is quite complicated because the timer is not guaranteed to fire in time.
-	// This makes pitch variations on real unit non-deterministic and dependent on various factors.
-	if (counter == 0) {
-		timeElapsed = (timeElapsed + processTimerIncrement) & 0x00FFFFFF;
-		// This roughly emulates pitch deviations observed on real units when playing a single partial that uses TVP/LFO.
-		counter = NOMINAL_PROCESS_TIMER_PERIOD_SAMPLES + (rand() & 3);
-		processTimerIncrement = (processTimerTicksPerSampleX16 * counter) >> 4;
-		process();
-	}
-	counter--;
-	return pitch;
+void TVP::processTimer() {
+	timeElapsed = (timeElapsed + processTimerIncrement) & 0x00FFFFFF;
+	// This roughly emulates pitch deviations observed on real units when playing a single partial that uses TVP/LFO.
+	counter = NOMINAL_PROCESS_TIMER_PERIOD_SAMPLES + (rand() & 3);
+	processTimerIncrement = (processTimerTicksPerSampleX16 * counter) >> 4;
+	process();
 }
 
 void TVP::process() {

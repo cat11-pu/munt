@@ -173,10 +173,6 @@ void TVF::reset(const TimbreParam::PartialParam *newPartialParam, unsigned int b
 	startRamp(newTarget, newIncrement, PHASE_2 - 1);
 }
 
-Bit8u TVF::getBaseCutoff() const {
-	return baseCutoff;
-}
-
 void TVF::handleInterrupt() {
 	nextPhase();
 }

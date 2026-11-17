@@ -54,7 +54,7 @@ public:
 	// for the lifetime of the partial.
 	// Barring bugs, the number returned is confirmed accurate
 	// (based on specs from Mok).
-	Bit8u getBaseCutoff() const;
+	Bit8u getBaseCutoff() const { return baseCutoff; }
 	void handleInterrupt();
 	void startDecay();
 }; // class TVF

@@ -76,6 +76,12 @@ private:
 	int veloAmpSubtraction;
 	int keyTimeSubtraction;
 
+	int basicAmp;
+	Bit8u cachedMasterVolume;
+	Bit8u cachedPartVolume;
+	Bit8u cachedExpression;
+	Bit8u cachedRhythmOutput;
+
 	Bit8u target;
 	int phase;
 
@@ -93,7 +99,7 @@ public:
 	void startDecay();
 	void startAbort();
 
-	bool isPlaying() const;
+	bool isPlaying() const { return playing; }
 	int getPhase() const;
 }; // class TVA
 

@@ -45,7 +45,9 @@ void TVA::initTables(const Tables &tables) {
 }
 
 TVA::TVA(const Partial *usePartial, LA32Ramp *useAmpRamp) :
-	partial(usePartial), ampRamp(useAmpRamp), system(&usePartial->getSynth()->mt32ram.system), phase(TVA_PHASE_DEAD) {
+	partial(usePartial), ampRamp(useAmpRamp), system(&usePartial->getSynth()->mt32ram.system),
+	basicAmp(0), cachedMasterVolume(0), cachedPartVolume(0), cachedExpression(0), cachedRhythmOutput(0),
+	phase(TVA_PHASE_DEAD) {
 }
 
 void TVA::startRamp(Bit8u newTarget, Bit8u newIncrement, int newPhase) {
@@ -176,7 +178,13 @@ void TVA::reset(const Part *newPart, const TimbreParam::PartialParam *newPartial
 	biasAmpSubtraction = calcBiasAmpSubtractions(partialParam, key);
 	veloAmpSubtraction = calcVeloAmpSubtraction(partialParam->tva.veloSensitivity, velocity);
 
-	int newTarget = calcBasicAmp(partial, system, partialParam, part->getVolume(), newRhythmTemp, biasAmpSubtraction, veloAmpSubtraction, part->getExpression(), partial->getSynth()->controlROMFeatures->quirkRingModulationNoMix);
+	cachedMasterVolume = system->masterVol;
+	cachedPartVolume = part->getVolume();
+	cachedExpression = part->getExpression();
+	cachedRhythmOutput = newRhythmTemp != NULL ? newRhythmTemp->outputLevel : 0;
+	basicAmp = calcBasicAmp(partial, system, partialParam, cachedPartVolume, newRhythmTemp, biasAmpSubtraction, veloAmpSubtraction, cachedExpression, partial->getSynth()->controlROMFeatures->quirkRingModulationNoMix);
+
+	int newTarget = basicAmp;
 	int newPhase;
 	if (partialParam->tva.envTime[0] == 0) {
 		// Initially go to the TVA_PHASE_ATTACK target amp, and spend the next phase going from there to the TVA_PHASE_2 target amp
@@ -226,8 +234,18 @@ void TVA::recalcSustain() {
 	if (phase != TVA_PHASE_SUSTAIN || partialParam->tva.envLevel[3] == 0) {
 		return;
 	}
-	// We're sustaining. Recalculate all the values
-	int newTarget = calcBasicAmp(partial, system, partialParam, part->getVolume(), rhythmTemp, biasAmpSubtraction, veloAmpSubtraction, part->getExpression(), partial->getSynth()->controlROMFeatures->quirkRingModulationNoMix);
+	// We're sustaining. Recalculate the values only if one of the inputs has actually changed.
+	Bit8u partVolume = part->getVolume();
+	Bit8u expression = part->getExpression();
+	Bit8u rhythmOutput = rhythmTemp != NULL ? rhythmTemp->outputLevel : 0;
+	if (system->masterVol != cachedMasterVolume || partVolume != cachedPartVolume || expression != cachedExpression || rhythmOutput != cachedRhythmOutput) {
+		cachedMasterVolume = system->masterVol;
+		cachedPartVolume = partVolume;
+		cachedExpression = expression;
+		cachedRhythmOutput = rhythmOutput;
+		basicAmp = calcBasicAmp(partial, system, partialParam, partVolume, rhythmTemp, biasAmpSubtraction, veloAmpSubtraction, expression, partial->getSynth()->controlROMFeatures->quirkRingModulationNoMix);
+	}
+	int newTarget = basicAmp;
 	newTarget += partialParam->tva.envLevel[3];
 
 	// Although we're in TVA_PHASE_SUSTAIN at this point, we cannot be sure that there is no active ramp at the moment.
@@ -252,10 +270,6 @@ void TVA::recalcSustain() {
 
 	// Configure so that once the transition's complete and nextPhase() is called, we'll just re-enter sustain phase (or decay phase, depending on parameters at the time).
 	startRamp(newTarget, newIncrement, TVA_PHASE_SUSTAIN - 1);
-}
-
-bool TVA::isPlaying() const {
-	return playing;
 }
 
 int TVA::getPhase() const {

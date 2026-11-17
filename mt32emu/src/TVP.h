@@ -61,11 +61,21 @@ private:
 	void targetPitchOffsetReached();
 	void nextPhase();
 	void process();
+	void processTimer();
 public:
 	TVP(const Partial *partial);
 	void reset(const Part *part, const TimbreParam::PartialParam *partialParam);
 	Bit32u getBasePitch() const;
-	Bit16u nextPitch();
+	Bit16u nextPitch() {
+		// We emulate MCU software timer using these counter and processTimerIncrement variables.
+		// The value of NOMINAL_PROCESS_TIMER_PERIOD_SAMPLES approximates the period in samples
+		// between subsequent firings of the timer that normally occur.
+		// However, accurate emulation is quite complicated because the timer is not guaranteed to fire in time.
+		// This makes pitch variations on real unit non-deterministic and dependent on various factors.
+		if (counter == 0) processTimer();
+		counter--;
+		return pitch;
+	}
 	void startDecay();
 }; // class TVP
 
